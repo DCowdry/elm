@@ -24,11 +24,10 @@ view =
         -- ]
 
 star4 =
-    [ isosceles2 40 100 |> filled red |> rotate (degrees 0)
-    , isosceles2 40 100 |> filled red |> rotate (degrees 72)
+    [ isosceles2 40 100 |> filled red |> rotate (degrees 72*0)
+    , isosceles2 40 100 |> filled red |> rotate (degrees 72*1)
     , isosceles2 40 100 |> filled red |> rotate (degrees 72*2)
     , isosceles2 40 100 |> filled red |> rotate (degrees 72*3)
-    , isosceles2 40 100 |> filled red |> rotate (degrees 72*4)
     ]
 
 isosceles2 base height =
