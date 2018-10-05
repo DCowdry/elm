@@ -23,7 +23,12 @@ view =
                         ,star white 6 |> move (-184, 42)
                         ,star white 9 |> move (350, 100)
                         ,moon paleYellow 60 |> move (-370, 178)
+                        ,house 100 150 |> move (-50,-100)
                         ]
+
+house width height =
+    group [filled orange (rectangle (0.9 * width) (height/2))
+          ,filled orange (isosceles width (height/2)) |> move (-width/2, height/4)]
 
 paleYellow = rgb 255 255 210
 
@@ -52,11 +57,3 @@ sky color w h =
 earth color w h =
     rectangle w h |> filled color |> move (0,-3*h/2)
 
-star3 =
-    List.map triangleAtAngle (List.range 1 5)
-
-triangleAtAngle angle =
-    isosceles 40 100 |> filled (rainbow_pick angle) |> rotate (toFloat angle * (degrees 72))
-
-redCircle radius =
-    circle radius |> filled red
