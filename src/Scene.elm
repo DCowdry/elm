@@ -8,13 +8,27 @@ import GraphicSVG as G exposing (..)
 
 
 
+main : NotificationsProgram Color Msg
 main =
-    graphicsApp { view = view }
+    notificationsApp {  model = red -- causes circle to start red
+                     , update = update -- function which changes the model
+                     , view = view }
+
+type Msg
+    = Change
+    | RedAgain
+
+update msg model =
+    case msg of
+        Change ->
+            green
+        RedAgain ->
+            red
 
 viewW = 1000
 viewH = 500
 
-view =
+view model =
     collage viewW viewH [sky blue viewW viewH
                         ,earth darkGreen viewW (viewH/4)
                         ,star white 7 |> move (-70, 120)
@@ -22,7 +36,7 @@ view =
                         ,star white 5 |> move (189, 89)
                         ,star white 6 |> move (-184, 42)
                         ,star white 9 |> move (350, 100)
-                        ,moon paleYellow 60 |> move (-370, 178)
+                        ,moon model 60 |> move (-370, 178)
                         ,house 100 150 |> move (-50,-100)
                         ]
 
