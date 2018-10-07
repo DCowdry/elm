@@ -17,18 +17,55 @@ type alias Model =
 init =
     { angle = 0, speed = 1 }
 
-update msg model =
+oldUpdate msg model =
     case msg of
         Tick _ ( keys, _, _ ) ->
+            let model2 = case keys (Key "e") of
+                             JustDown ->
+                                 { model | speed = model.speed * 2}
+                             _ -> model
+            in
             case keys (Key "r") of
                 JustDown ->
-                    { model
-                        | angle = model.angle - model.speed
-                        , speed = -model.speed
+                    { model2
+                        | angle = model2.angle - model2.speed
+                        , speed = -model2.speed
                     }
 
                 _ ->
-                    { model | angle = model.angle + model.speed }
+                    { model2 | angle = model2.angle + model2.speed }
+
+update msg model =
+    case msg of
+        Tick _ (keys, _, _) ->
+            let
+                turnyUpdate model = { model | angle = model.angle + model.speed }
+                keyUpdater string model =
+                    case keys (Key string) of
+                        JustDown ->
+                            case string of
+                                "a" ->
+                                    {   model
+                                        | angle = model.angle - model.speed
+                                        , speed = -model.speed
+                                    }
+                                "s" ->
+                                    {   model
+                                        | angle = 0
+                                        , speed = 0
+                                    }
+                                "d" ->
+                                    {   model
+                                        | speed = model.speed + 1
+                                        , angle = model.angle + model.speed
+                                    }
+                                _ ->
+                                    turnyUpdate model
+
+                        _ ->
+                            turnyUpdate model
+            in
+            List.foldl keyUpdater model ["a", "s", "d", "f"]
 
 
 main =
