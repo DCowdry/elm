@@ -11,57 +11,85 @@ import GraphicSVG as G exposing (..)
 type Msg
     = Tick Float GetKeyState
 
+type RocketState = Landed
+                 | Thrusting
+                 | Falling
+
 type alias V2 = {x : Float, y : Float}
 
 v2zero = { x = 0, y = 0 }
 
 type alias Model =
-    { position : V2, velocity : V2, angle : Float }
+    { position : V2, velocity : V2, angle : Float, rocketState : RocketState }
 
 -- angle = 0, speed = 1 }
 init =
-    { position = v2zero, velocity = v2zero, angle = 0 }
-
+    { position = v2zero, velocity = v2zero, angle = 0, rocketState = Landed }
 
 gravityUpdate model =
+    if model.rocketState == Landed
+    then
+        model
+    else
+        let
+            modelVelocity = model.velocity
+        in
+        { model | velocity = { modelVelocity | y = modelVelocity.y - 0.0625}}
+
+velocityUpdate model =
+    if model.rocketState == Landed
+    then
+        model
+    else
+        let
+            s = model.position
+            v = model.velocity
+        in
+        { model | position = {x = s.x + v.x, y = s.y + v.y}}
+
+thrustUpdate model =
     let
         modelVelocity = model.velocity
     in
-    { model | velocity = { modelVelocity | y = modelVelocity.y - 0.0625}}
+    { model
+        | velocity = { modelVelocity
+                         | x = model.velocity.x + 0.125 * cos (model.angle + degrees 90)
+                         , y = model.velocity.y + 0.125 * sin (model.angle + degrees 90)
+                     }
+        , rocketState = Thrusting}
 
-velocityUpdate model =
-    let
-        s = model.position
-        v = model.velocity
-    in
-    { model | position = {x = s.x + v.x, y = s.y + v.y}}
+fallUpdate model =
+    case model.rocketState of
+        Landed -> model
+        _ -> { model | rocketState = Falling}
+
+turnUpdate delta model =
+    { model | angle = model.angle + delta }
+
 
 update msg model =
     case msg of
         Tick _ (keys, _, _) ->
             let
-                keyUpdater string model =
-                    case keys (Key string) of
-                        Down ->
-                            case string of
-                                "a" ->
-                                    {   model | angle = model.angle + 0.0625}
-                                "s" ->
-                                    let modelVelocity = model.velocity in
-                                    { model | velocity = { modelVelocity
-                                                             | x = model.velocity.x + 0.125 * cos (model.angle + degrees 90)
-                                                             , y = model.velocity.y + 0.125 * sin (model.angle + degrees 90)
-                                                         }}
-                                "d" ->
-                                    {   model | angle = model.angle - 0.0625}
-                                _ ->
-                                    model
-
-                        _ ->
-                            model
+                ifPressed key func =
+                    case keys (Key key) of
+                        JustDown -> func
+                        _ -> identity
+                ifDownElse key thenFunc elseFunc =
+                    case keys (Key key) of
+                        Down -> thenFunc
+                        JustDown -> thenFunc
+                        _ -> elseFunc
+                ifDown key thenFunc =
+                    ifDownElse key thenFunc identity
+            -- {   model | angle = model.angle + 0.0625}
             in
-            gravityUpdate <| velocityUpdate <| List.foldl keyUpdater model ["a", "s", "d", "f"]
-
+                model
+                    |> ifDownElse "s" thrustUpdate fallUpdate
+                    |> ifDown "a" (turnUpdate 0.0625)
+                    |> ifDown "d" (turnUpdate -0.0625)
+                    |> gravityUpdate
+                    |> velocityUpdate
 
 main =
     gameApp Tick {model = init
@@ -82,10 +110,17 @@ view model =
                         ,star white 9 |> move (350, 100)
                         ,moon paleYellow 60 |> move (-370, 178)
                         ,house 100 150 |> move (-50,-100)
-                        ,rocket 10 30 |> move (model.position.x, model.position.y) |> rotate (model.angle)
+                        ,rocket model.rocketState 200 |> move (model.position.x, model.position.y) |> rotate (model.angle)
                         ]
 
-rocket base height = isosceles2 base height |> filled red
+rocket rocketState height =
+    let
+        width = height/4
+        rocket = [isosceles2 width height |> filled lightGray
+                 ]
+        exhaust = [isosceles2 (width/2) (height/2) |> filled (rgba 255 127 127 0.7) |> rotate (degrees 180)]
+    in
+    group <| rocket ++ if rocketState == Thrusting then exhaust else []
 
 house width height =
     group [filled (rgb 60 50 40) (isosceles width (height/2)) |> move (-width/2, height/4)
