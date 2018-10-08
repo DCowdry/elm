@@ -2,129 +2,91 @@ module Scene exposing (main)
 
 import GraphicSVG as G exposing (..)
 
--- check out Racket functional graphics tutorial
+-- x=0, y=0 is at the center of the screen
+viewW = 1000 -- x from -500 to 500
+viewH = 500 -- y from -250 to 250
+groundH = 0 - viewH/4
 
--- mid-level premade stuff that they can mess with
+-- build the scene, one object at a time
+view model =
+    collage viewW viewH
+        [ sky blue viewW viewH
+        , earth veryDarkGreen viewW (viewH/4)
+        , star white 7 |> move (-70, 120)
+        , star white 8 |> move (43, -28)
+        , star white 5 |> move (189, 89)
+        , star white 6 |> move (-184, -42)
+        , star white 7 |> move (350, 100)
+        , moon paleYellow 60 |> move (-370, 178)
+        , rocket model.state 40 |> move (model.position.x, model.position.y) |> rotate (model.angle)
+        , tree 16 40 |> move (-360, groundH - 14)
+        , tree 24 60 |> move (-340, groundH - 20)
+        , tree 18 45 |> move (-300, groundH - 18)
+        , house 100 150 |> move (410,-150)
+        ]
 
-
-
-type Msg
-    = Tick Float GetKeyState
-
-type RocketState = Landed
-                 | Thrusting
-                 | Falling
-
-type alias V2 = {x : Float, y : Float}
-
-v2zero = { x = 0, y = 0 }
-
-type alias Model =
-    { position : V2, velocity : V2, angle : Float, rocketState : RocketState }
-
--- angle = 0, speed = 1 }
-init =
-    { position = v2zero, velocity = v2zero, angle = 0, rocketState = Landed }
-
-gravityUpdate model =
-    if model.rocketState == Landed
-    then
-        model
-    else
-        let
-            modelVelocity = model.velocity
-        in
-        { model | velocity = { modelVelocity | y = modelVelocity.y - 0.0625}}
-
-velocityUpdate model =
-    if model.rocketState == Landed
-    then
-        model
-    else
-        let
-            s = model.position
-            v = model.velocity
-        in
-        { model | position = {x = s.x + v.x, y = s.y + v.y}}
-
-thrustUpdate model =
-    let
-        modelVelocity = model.velocity
-    in
-    { model
-        | velocity = { modelVelocity
-                         | x = model.velocity.x + 0.125 * cos (model.angle + degrees 90)
-                         , y = model.velocity.y + 0.125 * sin (model.angle + degrees 90)
-                     }
-        , rocketState = Thrusting}
-
-fallUpdate model =
-    case model.rocketState of
-        Landed -> model
-        _ -> { model | rocketState = Falling}
-
-turnUpdate delta model =
-    { model | angle = model.angle + delta }
-
-
+-- the rocket can be launched and steered
+-- a: turn left
+-- s: thrust!
+-- d: turn right
 update msg model =
     case msg of
         Tick _ (keys, _, _) ->
             let
-                ifPressed key func =
-                    case keys (Key key) of
-                        JustDown -> func
-                        _ -> identity
+                ifDown key thenFunc =
+                    ifDownElse key thenFunc identity
                 ifDownElse key thenFunc elseFunc =
                     case keys (Key key) of
                         Down -> thenFunc
                         JustDown -> thenFunc
                         _ -> elseFunc
-                ifDown key thenFunc =
-                    ifDownElse key thenFunc identity
-            -- {   model | angle = model.angle + 0.0625}
+                ifPressed key func =
+                    case keys (Key key) of
+                        JustDown -> func
+                        _ -> identity
             in
-                model
-                    |> ifDownElse "s" thrustUpdate fallUpdate
-                    |> ifDown "a" (turnUpdate 0.0625)
-                    |> ifDown "d" (turnUpdate -0.0625)
-                    |> gravityUpdate
-                    |> velocityUpdate
+            model
+                |> ifDownElse "s" thrustUpdate noThrustUpdate
+                |> ifDown "a" (turnUpdate 0.0625)
+                |> ifDown "d" (turnUpdate -0.0625)
+                |> gravityUpdate
+                |> dragUpdate
+                |> velocityUpdate
 
-main =
-    gameApp Tick {model = init
-                 , update = update
-                 , view = view
-                 }
+init =
+    { position = { x = 0, y = groundH}
+    , velocity = { x = 0, y = 0 }
+    , angle = 0
+    , state = Landed }
 
-viewW = 1000
-viewH = 500
 
-view model =
-    collage viewW viewH [sky blue viewW viewH
-                        ,earth veryDarkGreen viewW (viewH/4)
-                        ,star white 7 |> move (-70, 120)
-                        ,star white 8 |> move (243, -28)
-                        ,star white 5 |> move (189, 89)
-                        ,star white 6 |> move (-184, 42)
-                        ,star white 9 |> move (350, 100)
-                        ,moon paleYellow 60 |> move (-370, 178)
-                        ,house 100 150 |> move (-50,-100)
-                        ,rocket model.rocketState 200 |> move (model.position.x, model.position.y) |> rotate (model.angle)
-                        ]
+moon color radius =
+    circle radius |> filled color
 
-rocket rocketState height =
+tree width height =
+    group [ isosceles2 width (height * 3/4) |> filled darkGreen  |> move (0, height/4)
+          , rectangle (width/4) (height/4) |> filled darkBrown |> move (0, height/8)
+          ]
+
+rocket state height =
     let
-        width = height/4
-        rocket = [isosceles2 width height |> filled lightGray
+        width = height/5
+        finScale = 1.5
+        nosecone = isosceles2 width (height/2+0.25) |> filled lightGray |> move (0, (height/2)-0.25) 
+        fins = isosceles2 (finScale * width) (finScale * (height/2+1)) |> filled lightGray
+        trunk = rectangle width (height/2) |> filled gray |> move (0, height/4)
+        afterburner = isosceles2 (width/2) (height/2) |> filled transparentRed |> rotate (degrees 180)
+        rocket = [ nosecone
+                 , fins
+                 , trunk
                  ]
-        exhaust = [isosceles2 (width/2) (height/2) |> filled (rgba 255 127 127 0.7) |> rotate (degrees 180)]
     in
-    group <| rocket ++ if rocketState == Thrusting then exhaust else []
+    group <| rocket ++ if state == Thrusting then [afterburner] else []
 
 house width height =
     group [filled (rgb 60 50 40) (isosceles width (height/2)) |> move (-width/2, height/4)
           ,filled (rgb 50 40 30) (rectangle (0.9 * width) (height/2))
+          -- in retrospect, it would have been easier to make windowpanes with a single rectangle and a '+' drawn over them.
           ,filled yellow (rectangle (width/10) (width/10)) |> move (width/5, 0)
           ,filled yellow (rectangle (width/10) (width/10)) |> move (1.6*width/5, width/5 * 0.6)
           ,filled yellow (rectangle (width/10) (width/10)) |> move (width/5, width/5 *0.6)
@@ -135,28 +97,18 @@ house width height =
           ,filled yellow (rectangle (width/10) (width/10)) |> move (-1.6*width/5, 0)
           ]
 
-paleYellow = rgb 255 255 210
-veryDarkGreen = rgb 0 80 0
-
-moon color radius =
-    circle radius |> filled color
-
 star color radius =
     let
         points =
-            5 -- 3..8 work ok
+            5
         rotation =
             degrees 360 / points
         starPoint i =
             isosceles2 isoBase radius |> filled color |> rotate (rotation * toFloat i)
         isoBase =
             2 * radius / tan rotation
-        glimmer i =
-            line (0,radius) (0,2*radius) |> outlined (solid 1) color |> rotate ((toFloat i + 0.5) * rotation)
     in
-        group (List.map starPoint (List.range 0 (points-1))
-              ++
-              (List.map glimmer (List.range 0 (points-1))))
+    group (List.map starPoint (List.range 1 points))
 
 sky color w h =
     rectangle w h |> filled color
@@ -164,8 +116,103 @@ sky color w h =
 earth color w h =
     rectangle w h |> filled color |> move (0,-3*h/2)
 
+
+
+
+type Msg
+    = Tick Float GetKeyState
+
+type RocketState = Landed
+                 | Thrusting
+                 | Falling
+
+type alias Point = {x : Float, y : Float}
+
+type alias Model = Rocket
+
+type alias Rocket =
+    { position : Point, velocity : Point, angle : Float, state : RocketState }
+
+gravityUpdate rocket =
+    if rocket.state == Landed
+    then
+        rocket
+    else
+        let
+            modelVelocity = rocket.velocity
+        in
+        { rocket | velocity = { modelVelocity | y = modelVelocity.y - 0.0625}}
+
+dragUpdate rocket =
+    let
+        v = rocket.velocity
+        drag = 0.99
+    in
+    { rocket | velocity = {x = v.x * drag, y = v.y * drag}}
+
+velocityUpdate rocket =
+    if rocket.state == Landed
+    then
+        rocket
+    else
+        let
+            s = rocket.position
+            v = rocket.velocity
+        in
+        { rocket | position = {x = s.x + v.x, y = s.y + v.y}}
+
+thrustUpdate rocket =
+    let
+        modelVelocity = rocket.velocity
+    in
+    { rocket
+        | state = Thrusting
+        , velocity = { modelVelocity
+                         | x = rocket.velocity.x + 0.125 * cos (rocket.angle + degrees 90)
+                         , y = rocket.velocity.y + 0.125 * sin (rocket.angle + degrees 90)
+                     }}
+
+noThrustUpdate rocket =
+    case rocket.state of
+        Landed ->
+            rocket
+        Falling ->
+            rocket
+        Thrusting ->
+            { rocket | state = Falling}
+
+
+turnUpdate delta rocket =
+    let
+        turnedRocket =
+            { rocket | angle = rocket.angle + delta }
+    in
+    case rocket.state of
+        Landed ->
+            rocket
+        Falling ->
+            turnedRocket
+        Thrusting ->
+            turnedRocket
+
+
+
+main =
+    gameApp Tick {model = init
+                 , update = update
+                 , view = view
+                 }
+
+-- there's a GraphicSVG isocolese function too, but that annyoingly
+-- has the origin at one of the legs.  this one has it's origin in the
+-- middle of the base, and is a good demo of how to draw arbitrary
+-- polygons
 isosceles2 base height =
     polygon [(0,height)
             ,(base / 2, 0)
             ,(-base / 2, 0)
             ]
+
+paleYellow = rgb 255 255 210
+veryDarkGreen = rgb 0 80 0
+transparentRed = rgba 255 63 63 0.7
