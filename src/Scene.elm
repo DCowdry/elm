@@ -1,6 +1,8 @@
 module Scene exposing (main)
 
 import GraphicSVG as G exposing (..)
+-- documented at: https://package.elm-lang.org/packages/MacCASOutreach/graphicsvg/2.1.0/GraphicSVG
+
 
 -- x=0, y=0 is at the center of the screen
 viewW = 1000 -- x from -500 to 500
@@ -133,15 +135,16 @@ type alias Model = Rocket
 type alias Rocket =
     { position : Point, velocity : Point, angle : Float, state : RocketState }
 
+
 gravityUpdate rocket =
-    if rocket.state == Landed
-    then
-        rocket
-    else
-        let
-            modelVelocity = rocket.velocity
-        in
-        { rocket | velocity = { modelVelocity | y = modelVelocity.y - 0.0625}}
+    let
+        gravityRocket =
+            { rocket | velocity = { x = rocket.velocity.x, y = rocket.velocity.y - 0.0625}}
+    in
+    case rocket.state of
+      Landed -> rocket
+      Falling -> gravityRocket
+      Thrusting -> gravityRocket
 
 dragUpdate rocket =
     let
@@ -151,15 +154,11 @@ dragUpdate rocket =
     { rocket | velocity = {x = v.x * drag, y = v.y * drag}}
 
 velocityUpdate rocket =
-    if rocket.state == Landed
-    then
-        rocket
-    else
-        let
-            s = rocket.position
-            v = rocket.velocity
-        in
-        { rocket | position = {x = s.x + v.x, y = s.y + v.y}}
+    let
+        pos = rocket.position
+        velo = rocket.velocity
+    in
+    { rocket | position = {x = pos.x + velo.x, y = pos.y + velo.y}}
 
 thrustUpdate rocket =
     let
