@@ -35,22 +35,22 @@ update msg model =
     case msg of
         Tick _ (keys, _, _) ->
             let
-                ifDown key thenFunc =
-                    ifDownElse key thenFunc identity
-                ifDownElse key thenFunc elseFunc =
+                ifHeldThen key thenFunc =
+                    ifHeldThenElse key thenFunc identity
+                ifHeldThenElse key thenFunc elseFunc =
                     case keys (Key key) of
                         Down -> thenFunc
                         JustDown -> thenFunc
                         _ -> elseFunc
-                ifPressed key func =
+                ifPressedThen key func =
                     case keys (Key key) of
                         JustDown -> func
                         _ -> identity
             in
             model
-                |> ifDownElse "s" thrustUpdate noThrustUpdate
-                |> ifDown "a" (turnUpdate 0.0625)
-                |> ifDown "d" (turnUpdate -0.0625)
+                |> ifHeldThenElse "s" thrustUpdate noThrustUpdate
+                |> ifHeldThen "a" (turnUpdate 0.0625)
+                |> ifHeldThen "d" (turnUpdate -0.0625)
                 |> gravityUpdate
                 |> dragUpdate
                 |> velocityUpdate

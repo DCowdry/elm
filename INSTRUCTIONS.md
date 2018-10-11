@@ -40,7 +40,8 @@ either of them, you thrust. If you hold both of them, you accellerate
 twice as fast!
 
 ## Bouncing
-(Advanced)
+_Advanced_
+
 If the rocket gets below the ground (`groundY`), have it bounce off.
 
 ### Hints
@@ -49,7 +50,9 @@ If the rocket gets below the ground (`groundY`), have it bounce off.
 - You may want to add a bounceUpdate function.
 
 ## Crashing
-(Advanced)
+
+_Advanced_
+
 Check out the RocketState type:
 
 ```
