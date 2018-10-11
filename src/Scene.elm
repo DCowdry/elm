@@ -51,6 +51,7 @@ update msg model =
                 |> ifDownElse "s" thrustUpdate noThrustUpdate
                 |> ifDown "a" (turnUpdate 0.0625)
                 |> ifDown "d" (turnUpdate -0.0625)
+                |> crashUpdate
                 |> gravityUpdate
                 |> dragUpdate
                 |> velocityUpdate
@@ -83,7 +84,10 @@ rocket state height =
                  , trunk
                  ]
     in
-    group <| rocket ++ if state == Thrusting then [afterburner] else []
+    if state == Crashed then
+        circle height |> filled transparentRed
+    else
+        group <| rocket ++ if state == Thrusting then [afterburner] else []
 
 house width height =
     group [filled (rgb 60 50 40) (isosceles width (height/2)) |> move (-width/2, height/4)
@@ -127,6 +131,7 @@ type Msg
 type RocketState = Landed
                  | Thrusting
                  | Falling
+                 | Crashed
 
 type alias Point = {x : Float, y : Float}
 
@@ -135,6 +140,11 @@ type alias Model = Rocket
 type alias Rocket =
     { position : Point, velocity : Point, angle : Float, state : RocketState }
 
+crashUpdate rocket =
+    if rocket.position.y < groundH then
+        {rocket | state = Crashed }
+    else
+        rocket
 
 gravityUpdate rocket =
     let
@@ -145,6 +155,7 @@ gravityUpdate rocket =
       Landed -> rocket
       Falling -> gravityRocket
       Thrusting -> gravityRocket
+      Crashed -> rocket
 
 dragUpdate rocket =
     let
@@ -158,7 +169,11 @@ velocityUpdate rocket =
         pos = rocket.position
         velo = rocket.velocity
     in
-    { rocket | position = {x = pos.x + velo.x, y = pos.y + velo.y}}
+    case rocket.state of
+        Crashed ->
+            { rocket | velocity = {x = 0, y = 0}}
+        _ ->
+            { rocket | position = {x = pos.x + velo.x, y = pos.y + velo.y}}
 
 thrustUpdate rocket =
     let
@@ -179,6 +194,7 @@ noThrustUpdate rocket =
             rocket
         Thrusting ->
             { rocket | state = Falling}
+        Crashed -> rocket
 
 
 turnUpdate delta rocket =
@@ -188,6 +204,8 @@ turnUpdate delta rocket =
     in
     case rocket.state of
         Landed ->
+            rocket
+        Crashed ->
             rocket
         Falling ->
             turnedRocket
