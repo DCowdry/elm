@@ -33,16 +33,20 @@ helper functions.
 - Add a key 'r' that resets the rocket to it's initial state - hint:
   the initial state is conveniently located in the term `init`.
 
+## Afterburners
+
+Add another button that also activates the thruster. If you hold
+either of them, you thrust. If you hold both of them, you accellerate
+twice as fast!
+
 ## Bouncing
 (Advanced)
 If the rocket gets below the ground (`groundY`), have it bounce off.
 
-### Hint
-Set the model's velocity.y to be positive. Look at gravityUpdate for
-an example of how to change the model's velocity.y.
-
-### Hint
-You may want to add a bounceUpdate function.
+### Hints
+- Set the model's velocity.y to be positive. Look at gravityUpdate for
+  an example of how to change the model's velocity.y.
+- You may want to add a bounceUpdate function.
 
 ## Crashing
 (Advanced)
