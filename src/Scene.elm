@@ -7,7 +7,7 @@ import GraphicSVG as G exposing (..)
 -- x=0, y=0 is at the center of the screen
 viewW = 1000 -- x from -500 to 500
 viewH = 500 -- y from -250 to 250
-groundH = 0 - viewH/4
+groundY = 0 - viewH/4
 
 -- build the scene, one object at a time
 view model =
@@ -21,9 +21,9 @@ view model =
         , star white 7 |> move (350, 100)
         , moon paleYellow 60 |> move (-370, 178)
         , rocket model.state 40 |> move (model.position.x, model.position.y) |> rotate (model.angle)
-        , tree 16 40 |> move (-360, groundH - 14)
-        , tree 24 60 |> move (-340, groundH - 20)
-        , tree 18 45 |> move (-300, groundH - 18)
+        , tree 16 40 |> move (-360, groundY - 14)
+        , tree 24 60 |> move (-340, groundY - 20)
+        , tree 18 45 |> move (-300, groundY - 18)
         , house 100 150 |> move (410,-150)
         ]
 
@@ -56,7 +56,7 @@ update msg model =
                 |> velocityUpdate
 
 init =
-    { position = { x = 0, y = groundH}
+    { position = { x = 0, y = groundY}
     , velocity = { x = 0, y = 0 }
     , angle = 0
     , state = Landed }
