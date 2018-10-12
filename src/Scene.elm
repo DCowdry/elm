@@ -14,17 +14,28 @@ view model =
     collage viewW viewH
         [ sky blue viewW viewH
         , earth veryDarkGreen viewW (viewH/4)
-        , star white 7 |> move (-70, 120)
+        
         , star white 8 |> move (43, -28)
         , star white 5 |> move (189, 89)
         , star white 6 |> move (-184, -42)
         , star white 7 |> move (350, 100)
+        , star2 red 5 |> move (289, 49) 
+        , star2 red 5 |> move (149, 29)
+
+
+
         , moon paleYellow 60 |> move (-370, 178)
         , rocket model.state 40 |> move (model.position.x, model.position.y) |> rotate (model.angle)
         , tree 16 40 |> move (-360, groundY - 14)
-        , tree 24 60 |> move (-340, groundY - 20)
+      
         , tree 18 45 |> move (-300, groundY - 18)
+        , tree 45 70 |> move (-200, groundY - 34)
         , house 100 150 |> move (410,-150)
+        , tree 40 80 |> move (-50, groundY - 78)
+        , tree 65 80 |> move (-250, groundY - 79)
+        , tree2 18 45 |> move (-375, groundY - 48)
+        , tree2 45 120 |> move (-400, groundY - 88)
+        
         ]
 
 -- the rocket can be launched and steered
@@ -54,6 +65,7 @@ update msg model =
                 |> gravityUpdate
                 |> dragUpdate
                 |> velocityUpdate
+                |> crashUpdate 
 
 init =
     { position = { x = 0, y = groundY}
@@ -61,13 +73,18 @@ init =
     , angle = 0
     , state = Landed }
 
-
+cloud color radius = 
+    circle radius |> filled color
 moon color radius =
     circle radius |> filled color
 
 tree width height =
-    group [ isosceles2 width (height * 3/4) |> filled darkGreen  |> move (0, height/4)
-          , rectangle (width/4) (height/4) |> filled darkBrown |> move (0, height/8)
+    group [ circle  (height * 1/4) |> filled darkGreen  |> move (0, height/3)
+          , oval (width/4) (height/4) |> filled darkBrown |> move (0, height/8)
+    ]
+tree2 width height =
+    group [isosceles2   (height * 1/2) (width * 3/4)|> filled darkGreen  |> move (0, height/3)
+          , rectangle (width/4) (height/4) |> filled darkBrown |> move (0, height/4)
           ]
 
 rocket state height =
@@ -109,6 +126,19 @@ star color radius =
             isosceles2 isoBase radius |> filled color |> rotate (rotation * toFloat i)
         isoBase =
             2 * radius / tan rotation
+    in
+    group (List.map starPoint (List.range 1 points))
+
+star2 color radius =
+    let
+        points =
+            10
+        rotation =
+            degrees 360 / points
+        starPoint i =
+            isosceles2 isoBase radius |> filled color |> rotate (rotation * toFloat i)
+        isoBase =
+            4 * radius / tan rotation
     in
     group (List.map starPoint (List.range 1 points))
 
@@ -194,7 +224,14 @@ turnUpdate delta rocket =
         Thrusting ->
             turnedRocket
 
-
+crashUpdate rocket =
+    let
+        pos = rocket.position
+    in    
+    if pos.y < groundY - 20 then
+        { rocket | velocity = {x = 1, y = 1}}
+    else 
+        rocket
 
 main =
     gameApp Tick {model = init
